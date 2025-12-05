@@ -1,0 +1,120 @@
+---
+title: "Research project"
+author: "Oleksii Lasiichuk, Denys Marchenko, Marko Pasternak"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Probability and Statistics
+
+# Research project: Statistical analysys of chess games
+
+------------------------------------------------------------------------
+
+## Short desription
+
+This research project utilizes a dataset of chess games played on the Lichess platform to investigate statistical patterns in online play. Our analysis focuses on two primary objectives: first, to determine if the classification of an opening (Open, Closed, Semi-Open, Semi-Closed, or Flank) significantly influences the duration of a game; and second, to evaluate the predictive power of rating differentials in determining match outcomes.
+
+------------------------------------------------------------------------
+
+## Data Preprocessing
+
+The [dataset](https://www.kaggle.com/datasets/datasnaek/chess) utilized in this study comprises approximately 20,000 chess games played online on the Lichess platform. The raw dataset contains the following variables:
+
+-   **Game ID:** Unique identifier for the match.
+-   **Rated (T/F):** Boolean indicating if the match affects player ratings.
+-   **Start Time / End Time:** Timestamp of the game.
+-   **Number of Turns:** Total moves played.
+-   **Game Status:** Result condition (e.g., resign, mate, draw).
+-   **Winner:** White, Black, or Draw.
+-   **Time Increment:** Time control settings.
+-   **White/Black Player ID:** Usernames of the players.
+-   **White/Black Player Rating:** ELO rating of the players.
+-   **Moves:** Full move history in standard chess notation.
+-   **Opening Eco:** Standardized Encyclopedia of Chess Openings code.
+-   **Opening Name:** The traditional name of the opening.
+-   **Opening Ply:** Number of moves in the opening phase.
+
+### Feature Selection and Engineering
+
+To facilitate our specific research aims, we performed data cleaning and feature engineering.
+
+First, we removed metadata columns that are unimportant to our statistical analysis of game mechanics. Specifically, **Game ID**, **Start Time**, **End Time**, **White Player ID**, and **Black Player ID** were excluded.
+
+Second, we removed all unrated games. Since these matches are typically used for training or casual play, they were treated as non-representative outliers to prevent skewing the results.
+
+Third, we engineered several new variables to categorize the data for hypothesis testing:
+
+1.  **Opening Type:** A categorical variable classifying the opening into one of five standard chess systems: *Open*, *Closed*, *Semi-Open*, *Semi-Closed*, or *Flank*.
+2.  **Average Rating:** The mean rating of the two players `(White Rating + Black Rating) / 2`, used to gauge the overall skill level of the match.
+3.  **Rating Gap:** The absolute difference in rating between the two players (`abs(White Rating - Black Rating)`).
+4.  **Outcome:** A categorical variable describing the result relative to rating expectations:
+    -   *Expected Win:* The higher-rated player won.
+    -   *Upset:* The lower-rated player won.
+    -   *Draw:* The game ended in a draw.
+    -   *Even:* Both players have the same rating.
+5.  **Gap Category:** A binned version of the Rating Gap variable (e.g., 0–50, 50–100, 100–150) to allow for grouped analysis of rating disparities.
+
+```{r}
+library(dplyr)
+library(stringr)
+
+# Load data
+chess_data <- read.csv("games.csv")
+
+clean_data <- chess_data %>%
+  # 1. Filter for RATED games only
+  filter(rated == TRUE) %>%
+  
+  # 2. Feature Selection (Remove columns)
+  select(-id, -created_at, -last_move_at, -white_id, -black_id, -rated) %>%
+  
+  # 2. Feature Engineering
+  mutate(
+    # Average Rating
+    average_rating = (white_rating + black_rating) / 2,
+    
+    # Rating Gap (Absolute difference)
+    rating_gap = abs(white_rating - black_rating),
+    
+    # Opening Type
+    opening_first_two = word(moves, 1, 2), # Extract first two moves
+    opening_type = case_when(
+      opening_first_two == "e4 e5" ~ "Open Game",
+      str_detect(opening_first_two, "^e4") & opening_first_two != "e4 e5" ~ "Semi-Open Game",
+      opening_first_two == "d4 d5" ~ "Closed Game",
+      str_detect(opening_first_two, "^d4") & opening_first_two != "d4 d5" ~ "Semi-Closed Game",
+      TRUE ~ "Flank Opening"
+    ),
+    
+    # Outcome (Expected vs Upset)
+    outcome_type = case_when(
+      winner == "draw" ~ "Draw",
+      (winner == "white" & white_rating > black_rating) ~ "Expected Win",
+      (winner == "black" & black_rating > white_rating) ~ "Expected Win",
+      TRUE ~ "Upset"
+    ),
+    
+    # Gap Category (Binning the gap)
+    gap_category = cut(rating_gap, 
+                       breaks = seq(0, max(rating_gap)+50, by = 50), 
+                       include.lowest = TRUE)
+  )
+
+
+head(clean_data)
+
+```
+
+------------------------------------------------------------------------
+
+## The Impact of Opening Type on Game Duration
+
+------------------------------------------------------------------------
+
+## Evaluating Rating Difference as an Outcome Predictor
+
+------------------------------------------------------------------------
+
+## Conclusion
