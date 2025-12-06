@@ -1,0 +1,558 @@
+---
+title: "Research project"
+author: "Oleksii Lasiichuk, Denys Marchenko, Marko Pasternak"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Probability and Statistics
+
+# Research project: Statistical analysys of chess games
+
+------------------------------------------------------------------------
+
+## Short desription
+
+This research project utilizes a dataset of chess games played on the
+Lichess platform to investigate statistical patterns in online play. Our
+analysis focuses on two primary objectives: first, to determine if the
+classification of an opening (Open, Closed, Semi-Open, Semi-Closed, or
+Flank) significantly influences the duration of a game; and second, to
+evaluate the predictive power of rating differentials in determining
+match outcomes.
+
+------------------------------------------------------------------------
+
+## Data Preprocessing
+
+The [dataset](https://www.kaggle.com/datasets/datasnaek/chess) utilized
+in this study comprises approximately 20,000 chess games played online
+on the Lichess platform. The raw dataset contains the following
+variables:
+
+-   **Game ID:** Unique identifier for the match.
+-   **Rated (T/F):** Boolean indicating if the match affects player
+    ratings.
+-   **Start Time / End Time:** Timestamp of the game.
+-   **Number of Turns:** Total moves played.
+-   **Game Status:** Result condition (e.g., resign, mate, draw).
+-   **Winner:** White, Black, or Draw.
+-   **Time Increment:** Time control settings.
+-   **White/Black Player ID:** Usernames of the players.
+-   **White/Black Player Rating:** ELO rating of the players.
+-   **Moves:** Full move history in standard chess notation.
+-   **Opening Eco:** Standardized Encyclopedia of Chess Openings code.
+-   **Opening Name:** The traditional name of the opening.
+-   **Opening Ply:** Number of moves in the opening phase.
+
+### Feature Selection and Engineering
+
+To facilitate our specific research aims, we performed data cleaning and
+feature engineering.
+
+First, we removed metadata columns that are unimportant to our
+statistical analysis of game mechanics. Specifically, **Game ID**,
+**Start Time**, **End Time**, **White Player ID**, and **Black Player
+ID** were excluded.
+
+Second, we removed all unrated games. Since these matches are typically
+used for training or casual play, they were treated as
+non-representative outliers to prevent skewing the results.
+
+Third, we engineered several new variables to categorize the data for
+hypothesis testing:
+
+1.  **Opening Type:** A categorical variable classifying the opening
+    into one of five standard chess systems: *Open*, *Closed*,
+    *Semi-Open*, *Semi-Closed*, or *Flank*.
+2.  **Average Rating:** The mean rating of the two players
+    `(White Rating + Black Rating) / 2`, used to gauge the overall skill
+    level of the match.
+3.  **Rating Gap:** The absolute difference in rating between the two
+    players (`abs(White Rating - Black Rating)`).
+4.  **Outcome:** A categorical variable describing the result relative
+    to rating expectations:
+    -   *Expected Win:* The higher-rated player won.
+    -   *Upset:* The lower-rated player won.
+    -   *Draw:* The game ended in a draw.
+    -   *Even:* Both players have the same rating.
+5.  **Gap Category:** A binned version of the Rating Gap variable (e.g.,
+    0–50, 50–100, 100–150) to allow for grouped analysis of rating
+    disparities.
+
+```{r}
+library(dplyr)
+library(stringr)
+
+# Load data
+chess_data <- read.csv("games.csv")
+
+clean_data <- chess_data %>%
+  # 1. Filter for RATED games only
+  filter(rated == TRUE) %>%
+  
+  # 2. Feature Selection (Remove columns)
+  select(-id, -created_at, -last_move_at, -white_id, -black_id, -rated) %>%
+  
+  # 2. Feature Engineering
+  mutate(
+    # Average Rating
+    average_rating = (white_rating + black_rating) / 2,
+    
+    # Rating Gap (Absolute difference)
+    rating_gap = abs(white_rating - black_rating),
+    
+    # Opening Type
+    opening_first_two = word(moves, 1, 2), # Extract first two moves
+    opening_type = case_when(
+      opening_first_two == "e4 e5" ~ "Open Game",
+      str_detect(opening_first_two, "^e4") & opening_first_two != "e4 e5" ~ "Semi-Open Game",
+      opening_first_two == "d4 d5" ~ "Closed Game",
+      str_detect(opening_first_two, "^d4") & opening_first_two != "d4 d5" ~ "Semi-Closed Game",
+      TRUE ~ "Flank Opening"
+    ),
+    
+    # Outcome (Expected vs Upset)
+    outcome_type = case_when(
+      winner == "draw" ~ "Draw",
+      (winner == "white" & white_rating > black_rating) ~ "Expected Win",
+      (winner == "black" & black_rating > white_rating) ~ "Expected Win",
+      TRUE ~ "Upset"
+    ),
+    
+    # Gap Category (Binning the gap)
+    gap_category = cut(rating_gap, 
+                       breaks = seq(0, max(rating_gap)+50, by = 50), 
+                       include.lowest = TRUE)
+  )
+
+
+head(clean_data)
+
+```
+
+------------------------------------------------------------------------
+
+## The Impact of Opening Type on Game Duration
+
+### Classification of Chess Openings
+
+The opening phase is critical in determining the trajectory and
+character of a chess game. We categorize games into five distinct types
+based on the initial move order:
+
+-   **Open Games (**$1. e4\ e5$): Characterized by immediate interaction
+    in the center. These positions often lead to open lines for piece
+    activity, favoring tactical and dynamic play.
+-   **Closed Games (**$1. d4\ d5$): Characterized by a stabilized
+    center. These games often evolve into slower, strategic battles
+    where maneuvering on the queenside is more common than direct
+    attacks on the king.
+-   **Semi-Open Games (**$1. e4$, black responds $\neq e5$): Black
+    allows White to occupy the center to attack it later. This creates
+    immediate structural imbalances, often resulting in sharp,
+    counter-attacking games (e.g., the Sicilian Defense).
+-   **Semi-Closed Games (**$1. d4$, black responds $\neq d5$): Black
+    responds asymmetrically to $d4$. These systems lead to complex
+    strategic imbalances where predicting the flow is difficult.
+-   **Flank Openings (White moves** $\neq e4, d4$): White attacks the
+    center from the sides (e.g., $1. c4$ or $1. Nf3$). These are highly
+    flexible and hard to generalize.
+
+*Note:* While these classifications describe statistical tendencies,
+they are not deterministic. Open games can transpose into quiet
+positions, and Closed games can become tactically volatile.
+
+### Hypothesis Formulation
+
+We aim to test whether the chosen opening category has a statistically
+significant effect on the duration of the game (measured in number of
+moves).
+
+Let $D$ be the random variable representing the duration of a game. We
+define the median duration for each opening type as follows:
+
+-   $\theta_{open}$: Median moves for Open games
+
+-   $\theta_{closed}$: Median moves for Closed games
+
+-   $\theta_{semi\_open}$: Median moves for Semi-Open games
+
+-   $\theta_{semi\_closed}$: Median moves for Semi-Closed games
+
+-   $\theta_{flank}$: Median moves for Flank games
+
+**Null Hypothesis (**$H_0$): The type of opening has no effect on game
+duration. The median game lengths are equal across all categories.
+$$H_0: \theta_{open} = \theta_{closed} = \theta_{semi\_open} = \theta_{semi\_closed} = \theta_{flank}$$
+
+**Alternative Hypothesis (**$H_1$): The opening type influences the game
+duration. At least one group's median differs from the others.
+$$H_1: \exists (i, j) \text{ such that } \theta_i \neq \theta_j$$
+
+**Theoretical Prediction:** Based on the tactical nature of **Open
+Games**, we predict $\theta_{open}$ will be the lowest, as tactical
+errors often lead to quick decisive results (checkmate or resignation).
+Conversely, we predict $\theta_{closed}$ will be the highest, as these
+games rely on long-term positional maneuvering where decisive advantages
+take longer to accumulate.
+
+### Methodology
+
+To test these hypotheses, we will utilize the **Kruskal-Wallis Rank Sum
+Test**.
+
+This non-parametric test is expedient for our analysis because:
+
+1.  **Non-Normality:** We anticipate that the distribution of chess game
+    lengths will be right-skewed and non-normal. This would violate the
+    normality assumption required for a standard **ANOVA** (Analysis of
+    Variance), which is the traditional parametric test used to compare
+    the means of three or more groups. We will verify this distribution
+    visually in the Descriptive Analysis section.
+
+2.  **Multiple Groups:** We are comparing five distinct independent
+    groups. As the **Mann-Whitney U test** is limited to comparing the
+    distributions of only *two* groups, the Kruskal-Wallis test serves
+    as the necessary extension to handle our multi-group comparison
+    simultaneously.
+
+If the Kruskal-Wallis test indicates significance ($p < 0.05$), we will
+reject $H_0$ and conclude that opening choice does impact game
+longevity.
+
+### Descriptive analysis of data
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(knitr)
+
+# --- 1. Summary Statistics Table (Unchanged) ---
+desc_stats <- clean_data %>%
+  group_by(opening_type) %>%
+  summarise(
+    Count = n(),
+    Mean_Turns = mean(turns, na.rm = TRUE),
+    Median_Turns = median(turns, na.rm = TRUE),
+    SD_Turns = sd(turns, na.rm = TRUE),
+    Min = min(turns, na.rm = TRUE),
+    Max = max(turns, na.rm = TRUE)
+  ) %>%
+  arrange(desc(Median_Turns))
+
+kable(desc_stats, caption = "Summary Statistics of Game Duration by Opening Type")
+
+# --- 2. Individual Histograms Loop ---
+# We get a list of all unique opening types
+types <- unique(clean_data$opening_type)
+
+# We loop through each type to create a separate graph
+for (type in types) {
+  
+  # Filter data for just this one opening type
+  subset_data <- clean_data %>% filter(opening_type == type)
+  
+  # Calculate the median for this specific group to draw a vertical line
+  this_median <- median(subset_data$turns, na.rm = TRUE)
+  
+  # Create the plot
+  p <- ggplot(subset_data, aes(x = turns)) +
+    geom_histogram(aes(y = after_stat(density)), binwidth = 5, fill = "#69b3a2", color = "white", alpha = 0.8) +
+    geom_density(alpha = 0.2, fill = "#69b3a2", linewidth = 1) +
+    
+    # Add a vertical red line for the Median
+    geom_vline(aes(xintercept = this_median), color = "red", linetype = "dashed", linewidth = 1) +
+    
+    # Add a text label for the median value
+    annotate("text", x = this_median + 10, y = 0.01, label = paste("Median:", this_median), color = "red") +
+    
+    labs(
+      title = paste("Distribution of Duration:", type),
+      subtitle = paste("Based on", nrow(subset_data), "games"),
+      x = "Number of Turns",
+      y = "Density"
+    ) +
+    theme_minimal() +
+    coord_cartesian(xlim = c(0, 150))
+  
+  # In R loops, you must explicitly call print() to show the graph
+  print(p)
+}
+```
+
+**1. Distribution Shape:** Visual inspection of the histograms confirms
+that game duration is **heavily right-skewed** across all five opening
+categories. The "long tail" extending to the right indicates that while
+most games finish between 40-60 moves, outliers of 100+ moves are
+common. This non-normality validates our decision to use the median as
+our central metric and the non-parametric **Kruskal-Wallis test** for
+hypothesis testing.
+
+**2. Analysis of Central Tendency:** Our data strongly supports the
+hypothesis regarding **Open Games**. With a median of **53 moves**, they
+are the shortest category, distinctly separated from the others. This
+aligns with the theoretical understanding that $1. e4\ e5$ positions
+often lead to sharp, tactical clashes that resolve quickly.
+
+**3. The "Strategic Cluster":** Interestingly, the data contradicts the
+assumption that Closed games are uniquely long. Instead, we observe a
+"strategic cluster": **Closed (57), Semi-Open (57), and Semi-Closed
+(58)** games all share a nearly identical median duration. This suggests
+that any deviation from the open $1. e4\ e5$ structure—whether through
+$d4$ or asymmetric defenses—tends to extend the game by an average of
+4-5 moves.
+
+**4. Flank Openings:** Flank openings occupy a transitional middle
+ground with a median of **55 moves**. While visual inspection suggests a
+distinct distribution profile, statistical analysis shows their
+volatility (Standard Deviation $\approx 33$) is consistent with all
+other opening types. This indicates that high variance in game length is
+an inherent property of chess itself, rather than a specific feature of
+Flank systems.
+
+To characterize the nature of these openings beyond simple duration, we
+examine three additional statistics:
+
+-   **Interquartile Range (IQR):** Measures the spread of the middle 50%
+    of the data. In this context, IQR serves as a proxy for
+    **consistency**; a higher value indicates unpredictable, volatile
+    game lengths.
+-   **Miniature Rate (**$< 25$ moves): Measures the percentage of games
+    ending quickly. This serves as a metric for **sharpness**,
+    identifying openings that lead to immediate tactical decisiveness.
+-   **Draw Rate:** Measures the percentage of games ending in a draw.
+    This correlates with **strategic stability**, as solid positions are
+    harder to break down and often extend into long endgames.
+
+```{r}
+# Extended Descriptive Statistics Table
+extended_stats <- clean_data %>%
+  group_by(opening_type) %>%
+  summarise(
+    Median = median(turns),
+    IQR = IQR(turns),
+    Miniature_Rate = paste0(round(mean(turns < 25) * 100, 1), "%"),
+    Draw_Rate = paste0(round(mean(winner == "draw") * 100, 1), "%")
+  ) %>%
+  arrange(desc(Median))
+
+kable(extended_stats, caption = "Volatility and Character Metrics by Opening Type")
+```
+
+Beyond the median duration, the supplementary metrics reveal distinct
+behavioral profiles for each opening category:
+
+**1. The "Sharpness" of Open Games:** The **Miniature Rate** (\< 25
+moves) provides the strongest evidence for our hypothesis regarding the
+volatility of Open Games. At **13.6%**, the probability of an Open Game
+ending in the opening phase is **exactly double** that of a Semi-Closed
+Game (6.8%). This statistically confirms that $1. e4\ e5$ positions
+carry a significantly higher risk of immediate tactical decisiveness
+compared to $1. d4$ systems.
+
+**2. The Unexpected Decisiveness of Flank Openings:** Contrary to the
+common belief that Flank openings are passive, the data shows they are
+highly decisive. They possess the **lowest draw rate (3.5%)** of all
+categories and a **Miniature Rate (13%)** nearly identical to Open
+Games. This suggests that while Flank openings (like the English or
+Reti) are positionally complex, they create imbalances that force a
+result—win or loss—rather than leading to safe, sterile draws.
+
+**3. Stability of Variance (IQR):** The **Interquartile Range (IQR)** is
+remarkably consistent across all groups, ranging tightly between **40
+and 43 moves**. This is a crucial negative finding: it indicates that
+while the *median* length shifts depending on the opening, the
+*unpredictability* (spread) of the game length is an inherent property
+of chess itself, rather than a feature of any specific opening system.
+
+**4. Strategic Solidity:** The **Semi-Closed** and **Closed** games
+exhibit the highest draw rates (5.1% and 4.7%) and the lowest miniature
+rates. This inverse relationship—low risk of quick loss combined with
+higher draw probability—statistically defines these openings as the most
+"solid" choices for risk-averse players.
+
+**Conclusion & Next Steps:** We have visually identified a likely
+difference between **Open Games** and the **Rest**. The next step is to
+perform the Kruskal-Wallis test to determine if these observed
+differences (53 vs. 58) are statistically significant or merely due to
+random variance.
+
+```{r}
+# Load necessary libraries
+library(broom) # For tidying statistical outputs
+library(knitr) # For nice tables
+
+# --- 1. The Global Test (Kruskal-Wallis) ---
+# This checks if at least one group is different from the others
+kw_result <- kruskal.test(turns ~ opening_type, data = clean_data)
+
+print(kw_result)
+
+# --- 2. Interpretation & Post-Hoc Analysis ---
+# We only run step 2 if the p-value is significant (< 0.05)
+if(kw_result$p.value < 0.05) {
+  
+  # Pairwise Wilcoxon Test with Bonferroni correction
+  # This compares every opening against every other opening
+  pairwise_result <- pairwise.wilcox.test(clean_data$turns, 
+                                          clean_data$opening_type, 
+                                          p.adjust.method = "bonferroni")
+  
+  # Display the matrix of p-values
+  # Values < 0.05 indicate a statistically significant difference between those two specific groups
+
+  print(pairwise_result)
+  
+} else {
+  print("Result: No significant difference found. We cannot reject the Null Hypothesis.")
+}
+```
+
+### Hypothesis Testing Results
+
+**1. Global Significance (Kruskal-Wallis Test):** The Kruskal-Wallis
+rank sum test yielded a p-value of $1.852 \times 10^{-7}$, which is well
+below the significance threshold ($\alpha = 0.05$). \* **Conclusion:**
+We reject the Null Hypothesis ($H_0$). There is a statistically
+significant difference in median game duration between at least two of
+the opening categories.
+
+**2. Pairwise Comparisons (Post-Hoc Analysis):** The pairwise Wilcoxon
+test (with Bonferroni correction) reveals the specific nature of these
+differences:
+
+-   **The "Open Game" Distinction:** Open Games ($1. e4\ e5$) are
+    statistically distinct from all "strategic" categories (Closed,
+    Semi-Closed, and Semi-Open), with p-values consistently below
+    $0.005$. This confirms our descriptive finding that Open games are
+    uniquely faster than the norm.
+
+-   **The "Strategic Cluster" Consistency:** Comparing Closed,
+    Semi-Closed, and Semi-Open games against each other yields p-values
+    of $1.00$ or close to it. This indicates no statistical difference
+    between them. Regardless of whether the game starts with $1. d4$ or
+    an asymmetric defense, the game duration converges to the same
+    "slower" baseline.
+
+-   **The Flank Anomaly:** Interestingly, Flank Openings show no
+    statistically significant difference when compared to Open Games
+    ($p=1.00$), despite having a slightly higher median (55 vs 53).
+    However, they are distinct from Semi-Closed games ($p=0.008$). This
+    places Flank openings in a statistical "middle ground"—neither fully
+    "sharp" nor fully "slow."
+
+**Final Verdict:** Our data proves that **opening choice is a
+significant predictor of game length**. Specifically, choosing an **Open
+Game (**$1. e4\ e5$) significantly reduces the expected duration of the
+match compared to Closed or Semi-Closed systems.
+
+------------------------------------------------------------------------
+
+## Evaluating Rating Difference as an Outcome Predictor
+
+```{r}
+
+winners <- chess_data$winner
+white_rating <- chess_data$white_rating
+
+black_rating <- chess_data$black_rating
+
+stat <- c()
+rating_diff <- c()
+
+
+for (i in 1:length(winners)) {
+  if (winners[i]=="black" && white_rating[i]<black_rating[i]) {
+    stat <- append(stat, 1)
+  }
+  else if (winners[i]=="white" && white_rating[i]>black_rating[i]) {
+    stat <- append(stat, 1)
+  }
+  else {stat <- append(stat, 0)}
+  rating_diff <- append(rating_diff, abs(white_rating[i] - black_rating[i]))
+
+}
+
+cat(stat)
+
+
+
+
+
+
+
+# Підготовка даних для графіків
+library(ggplot2)
+library(dplyr)
+
+# Створюємо дані для графіка
+plot_data <- data.frame(
+  rating_diff_abs = rating_diff,
+  stat = stat
+)
+
+# Групуємо за модулем різниці рейтингу та обчислюємо відсоток перемог
+# Створюємо біни для модуля різниці рейтингу (менші біни для більшої деталізації)
+plot_data$rating_bin <- cut(plot_data$rating_diff_abs, 
+                            breaks = seq(0, max(plot_data$rating_diff_abs) + 10, by = 10),
+                            include.lowest = TRUE)
+
+# Обчислюємо відсоток перемог гравців з вищим рейтингом для кожного біна
+summary_data <- plot_data %>%
+  group_by(rating_bin) %>%
+  summarise(
+    rating_diff_mid = mean(rating_diff_abs),
+    win_percentage = mean(stat) * 100,
+    n = n()
+  ) %>%
+  filter(!is.na(rating_bin) & n >= 5)  # Фільтруємо біни з мінімум 5 партіями для стабільності
+
+# Графік 1: Модуль різниці рейтингу vs Відсоток перемог гравців з вищим рейтингом (деталізований)
+ggplot(summary_data, aes(x = rating_diff_mid, y = win_percentage)) +
+  geom_point(size = 2, color = "steelblue", alpha = 0.7) +
+  geom_line(color = "steelblue", linewidth = 0.8, alpha = 0.8) +
+  geom_smooth(method = "loess", se = TRUE, color = "darkblue", fill = "lightblue", alpha = 0.3, linewidth = 1.2) +
+  geom_hline(yintercept = 50, linetype = "dashed", color = "red", linewidth = 1) +
+  labs(
+    title = "Залежність відсотка перемог гравців з вищим рейтингом від різниці рейтингу",
+    subtitle = "Відсоток перемог гравців з вищим рейтингом залежно від модуля різниці рейтингу (деталізований)",
+    x = "Модуль різниці рейтингу",
+    y = "Відсоток перемог гравців з вищим рейтингом (%)"
+  ) +
+  theme_minimal()
+
+# Графік 2: Розподіл кількості партій за модулем різниці рейтингу (з деталізованими бінами)
+# Створюємо окремі дані для другого графіка з усіма бінами
+plot_data_all <- plot_data
+plot_data_all$rating_bin_all <- cut(plot_data_all$rating_diff_abs, 
+                                     breaks = seq(0, max(plot_data_all$rating_diff_abs) + 10, by = 10),
+                                     include.lowest = TRUE)
+
+summary_data_all <- plot_data_all %>%
+  group_by(rating_bin_all) %>%
+  summarise(
+    rating_diff_mid = mean(rating_diff_abs),
+    n = n()
+  ) %>%
+  filter(!is.na(rating_bin_all))
+
+ggplot(summary_data_all, aes(x = rating_diff_mid, y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Розподіл кількості партій за модулем різниці рейтингу",
+    subtitle = "Кількість партій для різних значень модуля різниці рейтингу",
+    x = "Модуль різниці рейтингу",
+    y = "Кількість партій"
+  ) +
+  theme_minimal()
+
+```
+
+------------------------------------------------------------------------
+
+## Conclusion
