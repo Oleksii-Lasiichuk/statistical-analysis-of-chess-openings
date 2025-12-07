@@ -612,7 +612,7 @@ The p-value for the rating_gap term is < 2e-16 (effectively zero).
 Conclusion: We strongly reject the Null Hypothesis ($H_0$). There is overwhelmingly significant evidence that the rating difference predicts game outcomes.
 
 2. Effect Size (Odds Ratio)
-The coefficient estimate $\beta_1$ is approximately r round(coef(logit_model)[2], 4).
+The coefficient estimate $\beta_1$ is approximately `r round(coef(logit_model)[2], 4)`.
 To interpret this, we calculate the Odds Ratio:
 $$ \text{OR} = e^{\beta_1} \approx e^{0.0055} \approx 1.0055 $$
 
