@@ -454,7 +454,20 @@ match compared to Closed or Semi-Closed systems.
 
 ### Conclusion
 
-To investigate the impact of opening types on game duration, we employed the Kruskal-Wallis rank sum test. This non-parametric approach was selected over standard ANOVA due to the significant right-skewness of our data, allowing us to compare the distributions of five distinct groups based on rank sums rather than raw means. This method provides a robust and computationally efficient alternative to complex cumulative distribution comparisons (like Kolmogorov-Smirnov), making it ideal for scaling to large datasets. Upon establishing global significance ($p < 0.05$), we conducted a Pairwise Wilcoxon test with Bonferroni correction. This post-hoc analysis rigorously controlled the family-wise error rate, enabling us to isolate specific differences and statistically validate that Open Games ($1. e4\ e5$) lead to significantly shorter matches compared to Closed and Semi-Closed systems.
+To investigate the impact of opening types on game duration, we employed
+the Kruskal-Wallis rank sum test. This non-parametric approach was
+selected over standard ANOVA due to the significant right-skewness of
+our data, allowing us to compare the distributions of five distinct
+groups based on rank sums rather than raw means. This method provides a
+robust and computationally efficient alternative to complex cumulative
+distribution comparisons (like Kolmogorov-Smirnov), making it ideal for
+scaling to large datasets. Upon establishing global significance
+($p < 0.05$), we conducted a Pairwise Wilcoxon test with Bonferroni
+correction. This post-hoc analysis rigorously controlled the family-wise
+error rate, enabling us to isolate specific differences and
+statistically validate that Open Games ($1. e4\ e5$) lead to
+significantly shorter matches compared to Closed and Semi-Closed
+systems.
 
 # 2. Evaluating Rating Difference as an Outcome Predictor
 
