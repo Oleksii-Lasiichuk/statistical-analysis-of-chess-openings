@@ -417,12 +417,11 @@ if(kw_result$p.value < 0.05) {
 
 **1. Global Significance (Kruskal-Wallis Test):** The Kruskal-Wallis
 rank sum test yielded a p-value of $1.852 \times 10^{-7}$, which is well
-below the significance threshold ($\alpha = 0.05$). 
+below the significance threshold ($\alpha = 0.05$).
 
-**Conclusion:**
-We reject the Null Hypothesis ($H_0$). There is a statistically
-significant difference in median game duration between at least two of
-the opening categories.
+**Conclusion:** We reject the Null Hypothesis ($H_0$). There is a
+statistically significant difference in median game duration between at
+least two of the opening categories.
 
 **2. Pairwise Comparisons (Post-Hoc Analysis):** The pairwise Wilcoxon
 test (with Bonferroni correction) reveals the specific nature of these
@@ -455,8 +454,7 @@ match compared to Closed or Semi-Closed systems.
 
 ### Conclusion
 
-To investigate the impact of opening types on game duration, we employed the Kruskal-Wallis rank sum test. This non-parametric approach was selected over standard ANOVA due to the significant right-skewness of our data, allowing us to compare the distributions of five distinct groups based on rank sums rather than raw means. This method provides a robust and computationally efficient alternative to complex cumulative distribution comparisons (like  Kolmogorov-Smirnov), making it ideal for scaling to large datasets. Upon establishing global significance ($p < 0.05$), we conducted a Pairwise Wilcoxon test with Bonferroni correction. This post-hoc analysis rigorously controlled the family-wise error rate, enabling us to isolate specific differences and statistically validate that Open Games ($1. e4\ e5$) lead to significantly shorter matches compared to Closed and Semi-Closed systems.
-------------------------------------------------------------------------
+To investigate the impact of opening types on game duration, we employed the Kruskal-Wallis rank sum test. This non-parametric approach was selected over standard ANOVA due to the significant right-skewness of our data, allowing us to compare the distributions of five distinct groups based on rank sums rather than raw means. This method provides a robust and computationally efficient alternative to complex cumulative distribution comparisons (like Kolmogorov-Smirnov), making it ideal for scaling to large datasets. Upon establishing global significance ($p < 0.05$), we conducted a Pairwise Wilcoxon test with Bonferroni correction. This post-hoc analysis rigorously controlled the family-wise error rate, enabling us to isolate specific differences and statistically validate that Open Games ($1. e4\ e5$) lead to significantly shorter matches compared to Closed and Semi-Closed systems.
 
 # 2. Evaluating Rating Difference as an Outcome Predictor
 
@@ -698,19 +696,42 @@ less than 600.
 
 # General Conclusion
 
-In this project, we analyzed around 20,000 online chess games to see if statistical methods could explain real-world player behavior. We tested two main ideas, and in both cases, we found significant results that allowed us to reject our null hypotheses.
+In this project, we analyzed around 20,000 online chess games to see if
+statistical methods could explain real-world player behavior. We tested
+two main ideas, and in both cases, we found significant results that
+allowed us to reject our null hypotheses.
 
 ### 1. Opening Choice Affects Game Length
-First, we wanted to know if different openings lead to shorter or longer games. Since our data was not normally distributed (right-skewed), we chose the **Kruskal-Wallis test** instead of a standard ANOVA. 
 
-* **Result:** We rejected the Null Hypothesis. There is a statistically significant difference between opening categories.
-* **Specific Finding:** Post-hoc tests revealed that **Open Games ($1. e4\ e5$)** are uniquely faster and more volatile than other types. Meanwhile, Closed, Semi-Closed and Semi-Open games tend to cluster together as "slower" games. Essentially, playing an Open game creates a higher chance of a quick finish compared to playing a strategic system.
+First, we wanted to know if different openings lead to shorter or longer
+games. Since our data was not normally distributed (right-skewed), we
+chose the **Kruskal-Wallis test** instead of a standard ANOVA.
+
+-   **Result:** We rejected the Null Hypothesis. There is a
+    statistically significant difference between opening categories.
+-   **Specific Finding:** Post-hoc tests revealed that **Open Games
+    (**$1. e4\ e5$) are uniquely faster and more volatile than other
+    types. Meanwhile, Closed, Semi-Closed and Semi-Open games tend to
+    cluster together as "slower" games. Essentially, playing an Open
+    game creates a higher chance of a quick finish compared to playing a
+    strategic system.
 
 ### 2. Rating Differences Predict Winners
-Second, we tested if the rating gap accurately predicts who wins. We used **Logistic Regression** because the outcome is binary (Win/Loss).
 
-* **Result:** We rejected the Null Hypothesis. The rating gap is a powerful predictor of the match result ($p < 2e^{-16}$).
-* **Specific Finding:** The win probability follows a clear "S-curve." A bigger rating gap leads to a strictly higher chance of winning. However, we noticed that for extreme gaps (over 600 points), our empirical data diverged slightly from the model's predictions, likely due to the small sample size in that specific range.
+Second, we tested if the rating gap accurately predicts who wins. We
+used **Logistic Regression** because the outcome is binary (Win/Loss).
+
+-   **Result:** We rejected the Null Hypothesis. The rating gap is a
+    powerful predictor of the match result ($p < 2e^{-16}$).
+-   **Specific Finding:** The win probability follows a clear "S-curve."
+    A bigger rating gap leads to a strictly higher chance of winning.
+    However, we noticed that for extreme gaps (over 600 points), our
+    empirical data diverged slightly from the model's predictions,
+    likely due to the small sample size in that specific range.
 
 ### Final Thought
-Overall, our analysis confirmed that chess isn't just random. By using methods like Kruskal-Wallis and Logistic Regression, we proved that both the opening you choose and the rating gap you have are statistically significant drivers of how a game will end.
+
+Overall, our analysis confirmed that chess isn't just random. By using
+methods like Kruskal-Wallis and Logistic Regression, we proved that both
+the opening you choose and the rating gap you have are statistically
+significant drivers of how a game will end.
