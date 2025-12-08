@@ -1644,8 +1644,9 @@ evaluate the predictive power of rating differentials in determining
 match outcomes.</p>
 <hr />
 </div>
-<div id="data-preprocessing" class="section level2">
-<h2>Data Preprocessing</h2>
+</div>
+<div id="data-preprocessing" class="section level1">
+<h1>0. Data Preprocessing</h1>
 <p>The <a href="https://www.kaggle.com/datasets/datasnaek/chess">dataset</a>
 utilized in this study comprises approximately 20,000 chess games played
 online on the Lichess platform. The raw dataset contains the following
@@ -1773,8 +1774,8 @@ head(clean_data)</code></pre>
 <hr />
 </div>
 </div>
-<div id="the-impact-of-opening-type-on-game-duration" class="section level2">
-<h2>The Impact of Opening Type on Game Duration</h2>
+<div id="the-impact-of-opening-type-on-game-duration" class="section level1">
+<h1>1. The Impact of Opening Type on Game Duration</h1>
 <div id="classification-of-chess-openings" class="section level3">
 <h3>Classification of Chess Openings</h3>
 <p>The opening phase is critical in determining the trajectory and
@@ -2175,10 +2176,10 @@ if(kw_result$p.value &lt; 0.05) {
 <p><strong>1. Global Significance (Kruskal-Wallis Test):</strong> The
 Kruskal-Wallis rank sum test yielded a p-value of <span class="math inline">\(1.852 \times 10^{-7}\)</span>, which is well below
 the significance threshold (<span class="math inline">\(\alpha =
-0.05\)</span>). * <strong>Conclusion:</strong> We reject the Null
-Hypothesis (<span class="math inline">\(H_0\)</span>). There is a
-statistically significant difference in median game duration between at
-least two of the opening categories.</p>
+0.05\)</span>).</p>
+<p><strong>Conclusion:</strong> We reject the Null Hypothesis (<span class="math inline">\(H_0\)</span>). There is a statistically
+significant difference in median game duration between at least two of
+the opening categories.</p>
 <p><strong>2. Pairwise Comparisons (Post-Hoc Analysis):</strong> The
 pairwise Wilcoxon test (with Bonferroni correction) reveals the specific
 nature of these differences:</p>
@@ -2207,11 +2208,27 @@ choice is a significant predictor of game length</strong>. Specifically,
 choosing an <strong>Open Game (</strong><span class="math inline">\(1.
 e4\ e5\)</span>) significantly reduces the expected duration of the
 match compared to Closed or Semi-Closed systems.</p>
-<hr />
+</div>
+<div id="conclusion" class="section level3">
+<h3>Conclusion</h3>
+</div>
+<div id="to-investigate-the-impact-of-opening-types-on-game-duration-we-employed-the-kruskal-wallis-rank-sum-test.-this-non-parametric-approach-was-selected-over-standard-anova-due-to-the-significant-right-skewness-of-our-data-allowing-us-to-compare-the-distributions-of-five-distinct-groups-based-on-rank-sums-rather-than-raw-means.-this-method-provides-a-robust-and-computationally-efficient-alternative-to-complex-cumulative-distribution-comparisons-like-kolmogorov-smirnov-making-it-ideal-for-scaling-to-large-datasets.-upon-establishing-global-significance-p-0.05-we-conducted-a-pairwise-wilcoxon-test-with-bonferroni-correction.-this-post-hoc-analysis-rigorously-controlled-the-family-wise-error-rate-enabling-us-to-isolate-specific-differences-and-statistically-validate-that-open-games-1.-e4-e5-lead-to-significantly-shorter-matches-compared-to-closed-and-semi-closed-systems." class="section level2">
+<h2>To investigate the impact of opening types on game duration, we
+employed the Kruskal-Wallis rank sum test. This non-parametric approach
+was selected over standard ANOVA due to the significant right-skewness
+of our data, allowing us to compare the distributions of five distinct
+groups based on rank sums rather than raw means. This method provides a
+robust and computationally efficient alternative to complex cumulative
+distribution comparisons (like Kolmogorov-Smirnov), making it ideal for
+scaling to large datasets. Upon establishing global significance (<span class="math inline">\(p &lt; 0.05\)</span>), we conducted a Pairwise
+Wilcoxon test with Bonferroni correction. This post-hoc analysis
+rigorously controlled the family-wise error rate, enabling us to isolate
+specific differences and statistically validate that Open Games (<span class="math inline">\(1. e4\ e5\)</span>) lead to significantly shorter
+matches compared to Closed and Semi-Closed systems.</h2>
 </div>
 </div>
-<div id="evaluating-rating-difference-as-an-outcome-predictor" class="section level2">
-<h2>Evaluating Rating Difference as an Outcome Predictor</h2>
+<div id="evaluating-rating-difference-as-an-outcome-predictor" class="section level1">
+<h1>2. Evaluating Rating Difference as an Outcome Predictor</h1>
 <div id="aim-and-hypotheses" class="section level3">
 <h3>Aim and Hypotheses</h3>
 <p>In this section, we investigate whether the magnitude of the rating
@@ -2456,7 +2473,61 @@ ggplot() +
 closely. The narrow confidence interval (shaded red area) indicates that
 our model is very precise due to the large sample size, confirming that
 rating difference is a highly reliable predictor of chess outcomes.</p>
+<p>Also we can see that our empirical winrate converges to logarithmic
+curve pretty closely. But there is the one spot where empirical winrate
+diverges from logarithmic curve – the interval where rating difference
+is above 600. We see that residuals are negative and significally larger
+than any other interval’s. Explanation of this phenomenon: very small
+sample with games more than 600 rating difference compared to those with
+less than 600.</p>
+<hr />
 </div>
+</div>
+<div id="general-conclusion" class="section level1">
+<h1>General Conclusion</h1>
+<p>In this project, we analyzed around 20,000 online chess games to see
+if statistical methods could explain real-world player behavior. We
+tested two main ideas, and in both cases, we found significant results
+that allowed us to reject our null hypotheses.</p>
+<div id="opening-choice-affects-game-length" class="section level3">
+<h3>1. Opening Choice Affects Game Length</h3>
+<p>First, we wanted to know if different openings lead to shorter or
+longer games. Since our data was not normally distributed
+(right-skewed), we chose the <strong>Kruskal-Wallis test</strong>
+instead of a standard ANOVA.</p>
+<ul>
+<li><strong>Result:</strong> We rejected the Null Hypothesis. There is a
+statistically significant difference between opening categories.</li>
+<li><strong>Specific Finding:</strong> Post-hoc tests revealed that
+<strong>Open Games (<span class="math inline">\(1. e4\
+e5\)</span>)</strong> are uniquely faster and more volatile than other
+types. Meanwhile, Closed, Semi-Closed and Semi-Open games tend to
+cluster together as “slower” games. Essentially, playing an Open game
+creates a higher chance of a quick finish compared to playing a
+strategic system.</li>
+</ul>
+</div>
+<div id="rating-differences-predict-winners" class="section level3">
+<h3>2. Rating Differences Predict Winners</h3>
+<p>Second, we tested if the rating gap accurately predicts who wins. We
+used <strong>Logistic Regression</strong> because the outcome is binary
+(Win/Loss).</p>
+<ul>
+<li><strong>Result:</strong> We rejected the Null Hypothesis. The rating
+gap is a powerful predictor of the match result (<span class="math inline">\(p &lt; 2e^{-16}\)</span>).</li>
+<li><strong>Specific Finding:</strong> The win probability follows a
+clear “S-curve.” A bigger rating gap leads to a strictly higher chance
+of winning. However, we noticed that for extreme gaps (over 600 points),
+our empirical data diverged slightly from the model’s predictions,
+likely due to the small sample size in that specific range.</li>
+</ul>
+</div>
+<div id="final-thought" class="section level3">
+<h3>Final Thought</h3>
+<p>Overall, our analysis confirmed that chess isn’t just random. By
+using methods like Kruskal-Wallis and Logistic Regression, we proved
+that both the opening you choose and the rating gap you have are
+statistically significant drivers of how a game will end.</p>
 </div>
 </div>
 

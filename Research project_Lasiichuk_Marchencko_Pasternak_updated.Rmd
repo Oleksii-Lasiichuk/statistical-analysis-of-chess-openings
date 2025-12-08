@@ -27,7 +27,7 @@ match outcomes.
 
 ------------------------------------------------------------------------
 
-## Data Preprocessing
+# 0. Data Preprocessing
 
 The [dataset](https://www.kaggle.com/datasets/datasnaek/chess) utilized
 in this study comprises approximately 20,000 chess games played online
@@ -137,7 +137,7 @@ head(clean_data)
 
 ------------------------------------------------------------------------
 
-## The Impact of Opening Type on Game Duration
+# 1. The Impact of Opening Type on Game Duration
 
 ### Classification of Chess Openings
 
@@ -417,7 +417,9 @@ if(kw_result$p.value < 0.05) {
 
 **1. Global Significance (Kruskal-Wallis Test):** The Kruskal-Wallis
 rank sum test yielded a p-value of $1.852 \times 10^{-7}$, which is well
-below the significance threshold ($\alpha = 0.05$). \* **Conclusion:**
+below the significance threshold ($\alpha = 0.05$). 
+
+**Conclusion:**
 We reject the Null Hypothesis ($H_0$). There is a statistically
 significant difference in median game duration between at least two of
 the opening categories.
@@ -451,42 +453,45 @@ significant predictor of game length**. Specifically, choosing an **Open
 Game (**$1. e4\ e5$) significantly reduces the expected duration of the
 match compared to Closed or Semi-Closed systems.
 
+### Conclusion
+
+To investigate the impact of opening types on game duration, we employed the Kruskal-Wallis rank sum test. This non-parametric approach was selected over standard ANOVA due to the significant right-skewness of our data, allowing us to compare the distributions of five distinct groups based on rank sums rather than raw means. This method provides a robust and computationally efficient alternative to complex cumulative distribution comparisons (like  Kolmogorov-Smirnov), making it ideal for scaling to large datasets. Upon establishing global significance ($p < 0.05$), we conducted a Pairwise Wilcoxon test with Bonferroni correction. This post-hoc analysis rigorously controlled the family-wise error rate, enabling us to isolate specific differences and statistically validate that Open Games ($1. e4\ e5$) lead to significantly shorter matches compared to Closed and Semi-Closed systems.
 ------------------------------------------------------------------------
 
-
-
-
-## Evaluating Rating Difference as an Outcome Predictor
+# 2. Evaluating Rating Difference as an Outcome Predictor
 
 ### Aim and Hypotheses
 
-In this section, we investigate whether the magnitude of the rating difference 
-between two players allows us to predict the game outcome. The ELO rating system 
-is designed to measure chess skill, so we expect that a larger rating advantage 
-should translate to a higher probability of winning for the favorite.
+In this section, we investigate whether the magnitude of the rating
+difference between two players allows us to predict the game outcome.
+The ELO rating system is designed to measure chess skill, so we expect
+that a larger rating advantage should translate to a higher probability
+of winning for the favorite.
 
 ### Definition of Variables
 
-Let $Y$ be a binary random variable representing the game outcome for the 
-higher-rated player:
+Let $Y$ be a binary random variable representing the game outcome for
+the higher-rated player:
 
-- $Y = 1$: The higher-rated player wins
-- $Y = 0$: The higher-rated player does not win (Loss or Draw)
+-   $Y = 1$: The higher-rated player wins
+-   $Y = 0$: The higher-rated player does not win (Loss or Draw)
 
-Let $X$ denote the absolute difference in ELO ratings between the two players.
+Let $X$ denote the absolute difference in ELO ratings between the two
+players.
 
 We model the probability $P(Y=1)$ using a **Logistic Regression** model:
 $$\ln\left(\frac{P(Y=1)}{1-P(Y=1)}\right) = \beta_0 + \beta_1 X$$
 
-where $\beta_1$ represents the effect of each additional ELO point difference.
+where $\beta_1$ represents the effect of each additional ELO point
+difference.
 
 ### Statistical Hypotheses
 
-**Null Hypothesis** ($H_0$): Rating difference has no effect on win probability.
-$$H_0: \beta_1 = 0$$
+**Null Hypothesis** ($H_0$): Rating difference has no effect on win
+probability. $$H_0: \beta_1 = 0$$
 
-**Alternative Hypothesis** ($H_1$): Rating difference affects win probability.
-$H_1: \beta_1 \neq 0$
+**Alternative Hypothesis** ($H_1$): Rating difference affects win
+probability. $H_1: \beta_1 \neq 0$
 
 We use a significance level of $\alpha = 0.05$ for our hypothesis test.
 
@@ -494,13 +499,15 @@ We use a significance level of $\alpha = 0.05$ for our hypothesis test.
 
 We chose **Logistic Regression** for several reasons:
 
-1. **Binary Outcome**: Our dependent variable (win/not win) is binary, making 
-   logistic regression the appropriate choice.
-2. **Probability Modeling**: The logistic function naturally constrains predictions 
-   between 0 and 1, which aligns with probability interpretation.
-3. **Interpretability**: Coefficients can be transformed into odds ratios, providing 
-   intuitive interpretation of effect size.
-4. **Robust**: Doesn't assume normal distribution of the predictor variable.
+1.  **Binary Outcome**: Our dependent variable (win/not win) is binary,
+    making logistic regression the appropriate choice.
+2.  **Probability Modeling**: The logistic function naturally constrains
+    predictions between 0 and 1, which aligns with probability
+    interpretation.
+3.  **Interpretability**: Coefficients can be transformed into odds
+    ratios, providing intuitive interpretation of effect size.
+4.  **Robust**: Doesn't assume normal distribution of the predictor
+    variable.
 
 ### Data Preparation
 
@@ -522,11 +529,19 @@ model_data <- clean_data %>%
   )
 ```
 
-After filtering out games where both players have equal ratings, we have **`r nrow(model_data)`** games available for analysis. We excluded **`r nrow(clean_data) - nrow(model_data)`** games where players had identical ratings. The baseline win rate for the higher-rated player is **`r round(mean(model_data$favorite_won) * 100, 1)`%**, which serves as our benchmark—our model needs to provide insights beyond this simple baseline.
+After filtering out games where both players have equal ratings, we have
+**`r nrow(model_data)`** games available for analysis. We excluded
+**`r nrow(clean_data) - nrow(model_data)`** games where players had
+identical ratings. The baseline win rate for the higher-rated player is
+**`r round(mean(model_data$favorite_won) * 100, 1)`%**, which serves as
+our benchmark—our model needs to provide insights beyond this simple
+baseline.
 
 ### Descriptive Analysis
 
-First, let's examine the distribution of rating differences to understand our data density.
+First, let's examine the distribution of rating differences to
+understand our data density.
+
 ```{r}
 # Summary statistics
 cat("Mean Rating Diff:", round(mean(model_data$rating_diff), 1), "\n")
@@ -545,10 +560,14 @@ ggplot(model_data, aes(x = rating_diff)) +
   theme_minimal()
 ```
 
-**Interpretation**: 
-The distribution is strongly right-skewed. Most matchmaking occurs between players with a rating difference of less than 200 points. This means our model will be most robust in this range, while predictions for extreme rating differences (e.g., >600) rely on fewer data points.
+**Interpretation**: The distribution is strongly right-skewed. Most
+matchmaking occurs between players with a rating difference of less than
+200 points. This means our model will be most robust in this range,
+while predictions for extreme rating differences (e.g., \>600) rely on
+fewer data points.
 
-Next, we visualize the relationship between rating difference and win rate:
+Next, we visualize the relationship between rating difference and win
+rate:
 
 ```{r}
 # Calculate win rates by rating difference bins
@@ -582,13 +601,14 @@ ggplot(win_rate_summary, aes(x = rating_diff_mid, y = win_percentage)) +
 
 ### Descriptive Findings:
 
-Baseline: When the rating difference is near 0, the win rate is approximately 50%, indicating a fair match.
+Baseline: When the rating difference is near 0, the win rate is
+approximately 50%, indicating a fair match.
 
 Trend: The win rate increases steadily as the rating difference grows.
 
-Linearity Check: Crucially, the relationship is not a straight line. It follows a sigmoidal (S-shaped) curve. This visual evidence confirms that a Logistic Regression model is the appropriate statistical tool.
-
-
+Linearity Check: Crucially, the relationship is not a straight line. It
+follows a sigmoidal (S-shaped) curve. This visual evidence confirms that
+a Logistic Regression model is the appropriate statistical tool.
 
 ### Logistic Regression Model Results
 
@@ -607,26 +627,28 @@ kable(tidy_results, caption = "Logistic Regression Model Coefficients")
 
 ### Interpretation and Conclusion
 
-1. Statistical Significance
-The p-value for the rating_gap term is < 2e-16 (effectively zero).
-Conclusion: We strongly reject the Null Hypothesis ($H_0$). There is overwhelmingly significant evidence that the rating difference predicts game outcomes.
+1.  Statistical Significance The p-value for the rating_gap term is \<
+    2e-16 (effectively zero). Conclusion: We strongly reject the Null
+    Hypothesis ($H_0$). There is overwhelmingly significant evidence
+    that the rating difference predicts game outcomes.
 
-2. Effect Size (Odds Ratio)
-The coefficient estimate $\beta_1$ is approximately `r round(coef(logit_model)[2], 4)`.
-To interpret this, we calculate the Odds Ratio:
-$$ \text{OR} = e^{\beta_1} \approx e^{0.0055} \approx 1.0055 $$
+2.  Effect Size (Odds Ratio) The coefficient estimate $\beta_1$ is
+    approximately `r round(coef(logit_model)[2], 4)`. To interpret this,
+    we calculate the Odds Ratio:
+    $$ \text{OR} = e^{\beta_1} \approx e^{0.0055} \approx 1.0055 $$
 
-Practical Meaning: For every single ELO point difference, the odds of the favorite winning increase by 0.55%.
-While small on a per-point basis, this compounds quickly:
+Practical Meaning: For every single ELO point difference, the odds of
+the favorite winning increase by 0.55%. While small on a per-point
+basis, this compounds quickly:
 
-A 100-point advantage increases the odds of winning by a factor of $\approx 1.73$.
+A 100-point advantage increases the odds of winning by a factor of
+$\approx 1.73$.
 
-A 200-point advantage increases the odds of winning by a factor of $\approx 3.00$.
+A 200-point advantage increases the odds of winning by a factor of
+$\approx 3.00$.
 
-3. Model Fit Visualization
-Finally, we overlay the model's predicted probabilities curve against our observed data to check for fit.
-
-
+3.  Model Fit Visualization Finally, we overlay the model's predicted
+    probabilities curve against our observed data to check for fit.
 
 ```{r}
 # Generate predictions for a smooth curve
@@ -659,10 +681,36 @@ ggplot() +
   theme_minimal()
 ```
 
+The red prediction line tracks the observed data points extremely
+closely. The narrow confidence interval (shaded red area) indicates that
+our model is very precise due to the large sample size, confirming that
+rating difference is a highly reliable predictor of chess outcomes.
 
-The red prediction line tracks the observed data points extremely closely. The narrow confidence interval (shaded red area) indicates that our model is very precise due to the large sample size, confirming that rating difference is a highly reliable predictor of chess outcomes.
+Also we can see that our empirical winrate converges to logarithmic
+curve pretty closely. But there is the one spot where empirical winrate
+diverges from logarithmic curve – the interval where rating difference
+is above 600. We see that residuals are negative and significally larger
+than any other interval’s. Explanation of this phenomenon: very small
+sample with games more than 600 rating difference compared to those with
+less than 600.
 
+------------------------------------------------------------------------
 
+# General Conclusion
 
+In this project, we analyzed around 20,000 online chess games to see if statistical methods could explain real-world player behavior. We tested two main ideas, and in both cases, we found significant results that allowed us to reject our null hypotheses.
 
+### 1. Opening Choice Affects Game Length
+First, we wanted to know if different openings lead to shorter or longer games. Since our data was not normally distributed (right-skewed), we chose the **Kruskal-Wallis test** instead of a standard ANOVA. 
 
+* **Result:** We rejected the Null Hypothesis. There is a statistically significant difference between opening categories.
+* **Specific Finding:** Post-hoc tests revealed that **Open Games ($1. e4\ e5$)** are uniquely faster and more volatile than other types. Meanwhile, Closed, Semi-Closed and Semi-Open games tend to cluster together as "slower" games. Essentially, playing an Open game creates a higher chance of a quick finish compared to playing a strategic system.
+
+### 2. Rating Differences Predict Winners
+Second, we tested if the rating gap accurately predicts who wins. We used **Logistic Regression** because the outcome is binary (Win/Loss).
+
+* **Result:** We rejected the Null Hypothesis. The rating gap is a powerful predictor of the match result ($p < 2e^{-16}$).
+* **Specific Finding:** The win probability follows a clear "S-curve." A bigger rating gap leads to a strictly higher chance of winning. However, we noticed that for extreme gaps (over 600 points), our empirical data diverged slightly from the model's predictions, likely due to the small sample size in that specific range.
+
+### Final Thought
+Overall, our analysis confirmed that chess isn't just random. By using methods like Kruskal-Wallis and Logistic Regression, we proved that both the opening you choose and the rating gap you have are statistically significant drivers of how a game will end.
